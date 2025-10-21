@@ -1,4 +1,4 @@
-// server.js
+// server.js - Versão simplificada sem pool
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -6,53 +6,51 @@ const mysql = require('mysql2');
 
 dotenv.config();
 
-// ============================
-// Configuração do banco de dados
-// ============================
+// Configuração do banco
 const dbConfig = {
-  host: process.env.DB_HOST, // pode ser um host remoto ou IP
-  port: process.env.DB_PORT,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  // Configurações para evitar timeout
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true
 };
 
-// Teste de conexão com o banco
-const testDatabaseConnection = () => {
-  console.log('🔍 Tentando conectar ao banco de dados...');
-  console.log('   Host:', dbConfig.host);
-  console.log('   Porta:', dbConfig.port);
-  console.log('   Usuário:', dbConfig.user);
-  console.log('   Banco:', dbConfig.database);
+// Criar conexão única
+const connection = mysql.createConnection(dbConfig);
 
-  const connection = mysql.createConnection(dbConfig);
+// Conectar ao banco
+connection.connect((err) => {
+  if (err) {
+    console.error('❌ Erro de conexão:', err);
+    // Tentar reconectar após 5 segundos
+    setTimeout(() => process.exit(1), 5000);
+  } else {
+    console.log('✅ Conectado ao MySQL');
+    
+    // Manter conexão viva
+    setInterval(() => {
+      connection.query('SELECT 1', (err) => {
+        if (err) console.log('❌ Ping falhou:', err);
+      });
+    }, 30000); // Ping a cada 30 segundos
+  }
+});
 
-  connection.connect((err) => {
-    if (err) {
-      console.error('❌ Falha na conexão com o banco de dados:');
-      console.error('   Código:', err.code);
-      console.error('   Mensagem:', err.message);
-      process.exit(1);
-    } else {
-      console.log('✅ Conexão com o banco de dados estabelecida com sucesso!');
-    }
-    connection.end();
-  });
-};
-
-testDatabaseConnection();
-
-// ============================
-// Inicialização do servidor Express
-// ============================
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-// ============================
-// Rotas da aplicação
-// ============================
+// Middleware para adicionar conexão às requisições
+app.use((req, res, next) => {
+  req.db = connection;
+  next();
+});
+
+// Suas rotas continuam iguais
 const inscriptionRoutes = require('./routes/inscriptionRoutes');
 const drawRoutes = require('./routes/drawRoutes');
 const locationRoutes = require('./routes/locationRoutes');
@@ -61,51 +59,31 @@ app.use('/api', inscriptionRoutes);
 app.use('/api', drawRoutes);
 app.use('/api', locationRoutes);
 
-// ============================
-// Rota de saúde (health check)
-// ============================
+// Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Backend está funcionando!',
-    database: 'Conectado'
+  req.db.query('SELECT 1', (err) => {
+    if (err) {
+      return res.status(500).json({ 
+        status: 'ERROR', 
+        database: 'Offline' 
+      });
+    }
+    res.json({ 
+      status: 'OK', 
+      database: 'Online' 
+    });
   });
 });
 
-// ============================
-// Rota raiz (documentação simples)
-// ============================
+// Rota raiz
 app.get('/', (req, res) => {
   res.send(`
-    <h1>🎉 Backend do Sorteio de Bolsas</h1>
-    <p>API rodando na porta ${process.env.PORT || 5000}</p>
-    <p><a href="/health">Verificar saúde</a></p>
-    <p><strong>Endpoints disponíveis:</strong></p>
-    <ul>
-      <li>POST /api/inscriptions → Nova inscrição</li>
-      <li>GET /api/inscriptions → Listar inscrições</li>
-      <li>GET /api/estados → Listar todos os estados</li>
-      <li>GET /api/cidades/:idEstado → Listar cidades por estado</li>
-      <li>GET /api/sorteios/active → Sorteios ativos</li>
-    </ul>
-    <hr>
-    <h3>Conexão com o banco:</h3>
-    <ul>
-      <li><strong>Host:</strong> ${process.env.DB_HOST}</li>
-      <li><strong>Porta:</strong> ${process.env.DB_PORT}</li>
-      <li><strong>Usuário:</strong> ${process.env.DB_USER}</li>
-      <li><strong>Banco:</strong> ${process.env.DB_NAME}</li>
-    </ul>
+    <h1>🎉 Backend do Sorteio</h1>
+    <p><a href="/health">Health Check</a></p>
   `);
 });
 
-// ============================
-// Inicialização do servidor
-// ============================
-// Use sempre 0.0.0.0 para funcionar no Render
 const PORT = process.env.PORT || 5000;
-const HOST = '0.0.0.0';
-
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor na porta ${PORT}`);
 });
