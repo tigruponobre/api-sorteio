@@ -1,4 +1,3 @@
-
 // server.js
 const express = require('express');
 const cors = require('cors');
@@ -7,9 +6,9 @@ const mysql = require('mysql2');
 
 dotenv.config();
 
-// Configuração do banco (para diagnóstico)
+// Configuração do banco
 const dbConfig = {
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST, // pode ser um host remoto ou IP
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -49,11 +48,11 @@ app.use(express.json());
 // Rotas
 const inscriptionRoutes = require('./routes/inscriptionRoutes');
 const drawRoutes = require('./routes/drawRoutes');
-const locationRoutes = require('./routes/locationRoutes'); // 👈 Nova rota
+const locationRoutes = require('./routes/locationRoutes');
 
 app.use('/api', inscriptionRoutes);
 app.use('/api', drawRoutes);
-app.use('/api', locationRoutes); // 👈 Registrando a rota
+app.use('/api', locationRoutes);
 
 // Rota de saúde
 app.get('/health', (req, res) => {
@@ -89,8 +88,10 @@ app.get('/', (req, res) => {
   `);
 });
 
+// Aqui é a mudança principal: usar IP público
 const PORT = process.env.PORT || 5000;
+const HOST = '162.214.99.152';
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
 });

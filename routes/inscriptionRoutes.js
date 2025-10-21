@@ -73,21 +73,21 @@ router.get('/cursos/:instituicao/:modalidade', (req, res) => {
 // ==========================
 
 // POST - Validar CPF e criar pessoa (se permitido)
+// POST - Validar CPF e criar pessoa (com data de nascimento)
 router.post('/pessoas', (req, res) => {
-  const { fullName, cpf, email, phone, city, state, IDSORTEIO } = req.body;
+  const { fullName, cpf, email, phone, birthDate, city, state, IDSORTEIO } = req.body;
 
-  if (!fullName || !cpf || !email || !IDSORTEIO) {
-    return res.status(400).json({ message: 'Nome, CPF, e-mail e sorteio são obrigatórios' });
+  if (!fullName || !cpf || !email || !birthDate || !IDSORTEIO) {
+    return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
   }
 
-  // 1. Verifica se JÁ EXISTE uma inscrição com esse CPF no sorteio atual
+  // 1. Verifica se já existe inscrição com esse CPF no sorteio
   const checkInscricaoQuery = `
     SELECT i.IDINSCRICAO
     FROM inscricoes i
     JOIN pessoas p ON i.IDPESSOA = p.IDPESSOA
     WHERE p.CPF = ? AND i.IDSORTEIO = ?
   `;
-
   connection.execute(checkInscricaoQuery, [cpf, IDSORTEIO], (err, results) => {
     if (err) {
       console.error('Erro ao verificar inscrição por CPF:', err);
@@ -98,7 +98,7 @@ router.post('/pessoas', (req, res) => {
       return res.status(409).json({ message: 'Este CPF já está inscrito neste sorteio.' });
     }
 
-    // 2. Verifica se a pessoa já existe (para reutilizar IDPESSOA)
+    // 2. Verifica se a pessoa já existe
     const checkPessoaQuery = 'SELECT IDPESSOA FROM pessoas WHERE CPF = ?';
     connection.execute(checkPessoaQuery, [cpf], (err, pessoaResults) => {
       if (err) {
@@ -107,7 +107,6 @@ router.post('/pessoas', (req, res) => {
       }
 
       if (pessoaResults.length > 0) {
-        // Pessoa existe → retorna IDPESSOA
         return res.json({ IDPESSOA: pessoaResults[0].IDPESSOA, created: false });
       }
 
@@ -129,16 +128,16 @@ router.post('/pessoas', (req, res) => {
 
         const codMunicipio = cidadeResults[0].CODMUNICIPIO;
 
-        // 4. Cria nova pessoa
+        // 4. Cria nova pessoa com DTNASCIMENTO
         const insertPessoaQuery = `
           INSERT INTO pessoas 
-          (NOME, CPF, EMAIL, TELEFONE, CODMUNICIPIO, CRIADOPOR, CRIADOEM, MODIFICADOEM)
-          VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+          (NOME, CPF, EMAIL, TELEFONE, DTNASCIMENTO, CODMUNICIPIO, CRIADOPOR, CRIADOEM, MODIFICADOEM)
+          VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `;
 
         connection.execute(
           insertPessoaQuery,
-          [fullName, cpf, email, phone, codMunicipio, email],
+          [fullName, cpf, email, phone, birthDate, codMunicipio, email],
           (err, results) => {
             if (err) {
               console.error('Erro ao inserir pessoa:', err);
@@ -151,7 +150,6 @@ router.post('/pessoas', (req, res) => {
     });
   });
 });
-
 // ==========================
 // ROTAS DE INSCRIÇÃO
 // ==========================
