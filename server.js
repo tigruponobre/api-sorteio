@@ -6,7 +6,9 @@ const mysql = require('mysql2');
 
 dotenv.config();
 
-// Configuração do banco
+// ============================
+// Configuração do banco de dados
+// ============================
 const dbConfig = {
   host: process.env.DB_HOST, // pode ser um host remoto ou IP
   port: process.env.DB_PORT,
@@ -40,12 +42,17 @@ const testDatabaseConnection = () => {
 
 testDatabaseConnection();
 
+// ============================
+// Inicialização do servidor Express
+// ============================
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Rotas
+// ============================
+// Rotas da aplicação
+// ============================
 const inscriptionRoutes = require('./routes/inscriptionRoutes');
 const drawRoutes = require('./routes/drawRoutes');
 const locationRoutes = require('./routes/locationRoutes');
@@ -54,7 +61,9 @@ app.use('/api', inscriptionRoutes);
 app.use('/api', drawRoutes);
 app.use('/api', locationRoutes);
 
-// Rota de saúde
+// ============================
+// Rota de saúde (health check)
+// ============================
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -63,7 +72,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rota raiz
+// ============================
+// Rota raiz (documentação simples)
+// ============================
 app.get('/', (req, res) => {
   res.send(`
     <h1>🎉 Backend do Sorteio de Bolsas</h1>
@@ -88,9 +99,12 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Aqui é a mudança principal: usar IP público
+// ============================
+// Inicialização do servidor
+// ============================
+// Use sempre 0.0.0.0 para funcionar no Render
 const PORT = process.env.PORT || 5000;
-const HOST = '162.214.99.152';
+const HOST = '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
