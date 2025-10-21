@@ -1,15 +1,16 @@
 {
   "name": "api-sorteio",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "API de sorteio com Node.js, Express e MySQL",
+  "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "echo 'Nenhuma build necessária'"
   },
-  "keywords": [],
+  "keywords": ["api", "sorteio", "express", "mysql", "nodejs"],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -19,5 +20,12 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=18.x",
+    "npm": ">=9.x"
+  },
+  "render": {
+    "startCommand": "npm start"
   }
 }
